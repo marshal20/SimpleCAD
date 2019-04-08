@@ -3,10 +3,14 @@
 #include <SDL/SDL_opengl.h>
 #include <gl/GL.h>
 #include "renderer.h"
+#include "slidepoint.h"
+
+int width = 640; int height = 400;
+SlidePoint slidig_point;
+std::queue<RenderCmd> queue;
 
 void render()
 {
-	std::queue<RenderCmd> queue;
 	// Change color
 	queue.push({ RenderCmd::Color, 0.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
@@ -22,14 +26,65 @@ void render()
 	queue.push({ RenderCmd::Point, 0.0f });
 	queue.push({ RenderCmd::Coord, 0.5f });
 	queue.push({ RenderCmd::Coord, 0.5f });
+	
+	// Render the sliding point
+	{
+		if (slidig_point.issliding())
+		{
+			queue.push({ RenderCmd::Color, 0.0f });
+			queue.push({ RenderCmd::Coord, 0.0f });
+			queue.push({ RenderCmd::Coord, 0.0f });
+			queue.push({ RenderCmd::Coord, 0.0f });
+		}
+		else
+		{
+			queue.push({ RenderCmd::Color, 1.0f });
+			queue.push({ RenderCmd::Coord, 1.0f });
+			queue.push({ RenderCmd::Coord, 1.0f });
+			queue.push({ RenderCmd::Coord, 1.0f });
+		}
+		queue.push({ RenderCmd::Point, 0.0f });
+		queue.push({ RenderCmd::Coord, slidig_point.getx()-0.1f });
+		queue.push({ RenderCmd::Coord, slidig_point.gety()+0.1f });
+	}
 
 	render_queue(queue);
+
+	// Clear render queue
+	while (queue.size() > 0)
+	{
+		queue.pop();
+	}
+}
+
+void handle_event(SDL_Event Event)
+{
+	if (Event.type == SDL_MOUSEBUTTONDOWN)
+	{
+		if (Event.button.button == SDL_BUTTON_LEFT)
+		{
+			float x = 2.0f * (float)Event.button.x / width - 1.0f;
+			float y = -2.0f * (float)Event.button.y / height + 1.0f;
+			slidig_point.start(x, y);
+		}
+	}
+
+	if (Event.type == SDL_MOUSEBUTTONUP)
+	{
+		if (Event.button.button == SDL_BUTTON_LEFT)
+		{
+			slidig_point.end();
+		}
+	}
+
+	float x = 2.0f * (float)Event.button.x / width - 1.0f;
+	float y = -2.0f * (float)Event.button.y / height + 1.0f;
+	slidig_point.update(x, y);
 }
 
 int main(int argc, char* argv[]) 
 {
 	SDL_Window* window;
-	int width = 640; int height = 400;
 
 	if (SDL_Init(SDL_INIT_VIDEO) < 0) 
 	{
@@ -48,10 +103,18 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	while (true)
+	bool running = true;
+	while (running)
 	{
 		SDL_Event Event;
-		while (SDL_PollEvent(&Event));
+		while (SDL_PollEvent(&Event))
+		{
+			if (Event.type == SDL_QUIT)
+			{
+				running = false;
+			}
+			handle_event(Event);
+		}
 
 		glViewport(0, 0, width, height);
 		glClearColor(0.6f, 0.0f, 0.6f, 1.0f);
