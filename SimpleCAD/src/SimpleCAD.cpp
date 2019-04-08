@@ -3,49 +3,44 @@
 #include <SDL/SDL_opengl.h>
 #include <gl/GL.h>
 #include "renderer.h"
-#include "slidepoint.h"
+#include <vector>
 
 int width = 640; int height = 400;
-SlidePoint slidig_point;
 std::queue<RenderCmd> queue;
 
-void render()
+struct Line
 {
-	// Change color
+	float x1, y1, x2, y2;
+};
+
+bool is_down = false;
+Line cur_line;
+std::vector<Line> line_list;
+
+void PushLine(std::queue<RenderCmd>& queue, const Line& line)
+{
+	queue.push({ RenderCmd::Line, 0.0f });
+	queue.push({ RenderCmd::Coord, line.x1 });
+	queue.push({ RenderCmd::Coord, line.y1 });
+	queue.push({ RenderCmd::Coord, line.x2 });
+	queue.push({ RenderCmd::Coord, line.y2 });
+}
+
+void Render()
+{
 	queue.push({ RenderCmd::Color, 0.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
-	// Draw line
-	queue.push({ RenderCmd::Line, 0.0f });
-	queue.push({ RenderCmd::Coord, -0.5f });
-	queue.push({ RenderCmd::Coord, 0.5f });
-	queue.push({ RenderCmd::Coord, 0.5f });
-	queue.push({ RenderCmd::Coord, -0.5f });
-	// Draw point
-	queue.push({ RenderCmd::Point, 0.0f });
-	queue.push({ RenderCmd::Coord, 0.5f });
-	queue.push({ RenderCmd::Coord, 0.5f });
-	
-	// Render the sliding point
+
+	for (const Line& line : line_list)
 	{
-		if (slidig_point.issliding())
-		{
-			queue.push({ RenderCmd::Color, 0.0f });
-			queue.push({ RenderCmd::Coord, 0.0f });
-			queue.push({ RenderCmd::Coord, 0.0f });
-			queue.push({ RenderCmd::Coord, 0.0f });
-		}
-		else
-		{
-			queue.push({ RenderCmd::Color, 1.0f });
-			queue.push({ RenderCmd::Coord, 1.0f });
-			queue.push({ RenderCmd::Coord, 1.0f });
-			queue.push({ RenderCmd::Coord, 1.0f });
-		}
-		queue.push({ RenderCmd::Point, 0.0f });
-		queue.push({ RenderCmd::Coord, slidig_point.getx()-0.1f });
-		queue.push({ RenderCmd::Coord, slidig_point.gety()+0.1f });
+		PushLine(queue, line);
+	}
+
+	if (is_down)
+	{
+		PushLine(queue, cur_line);
 	}
 
 	render_queue(queue);
@@ -59,27 +54,26 @@ void render()
 
 void handle_event(SDL_Event Event)
 {
-	if (Event.type == SDL_MOUSEBUTTONDOWN)
-	{
-		if (Event.button.button == SDL_BUTTON_LEFT)
-		{
-			float x = 2.0f * (float)Event.button.x / width - 1.0f;
-			float y = -2.0f * (float)Event.button.y / height + 1.0f;
-			slidig_point.start(x, y);
-		}
-	}
-
-	if (Event.type == SDL_MOUSEBUTTONUP)
-	{
-		if (Event.button.button == SDL_BUTTON_LEFT)
-		{
-			slidig_point.end();
-		}
-	}
-
 	float x = 2.0f * (float)Event.button.x / width - 1.0f;
 	float y = -2.0f * (float)Event.button.y / height + 1.0f;
-	slidig_point.update(x, y);
+
+	cur_line.x2 = x;
+	cur_line.y2 = y;
+
+	if (Event.button.button == SDL_BUTTON_LEFT)
+	{
+		if (Event.type == SDL_MOUSEBUTTONDOWN)
+		{
+			is_down = true;
+			cur_line.x1 = x;
+			cur_line.y1 = y;
+		}
+		else if (Event.type == SDL_MOUSEBUTTONUP)
+		{
+			is_down = false;
+			line_list.push_back(cur_line);
+		}
+	}
 }
 
 int main(int argc, char* argv[]) 
@@ -120,7 +114,7 @@ int main(int argc, char* argv[])
 		glClearColor(0.6f, 0.0f, 0.6f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		render();
+		Render();
 
 		SDL_GL_SwapWindow(window);
 	}
