@@ -3,6 +3,7 @@
 #include <SDL/SDL_opengl.h>
 #include <gl/GL.h>
 #include "renderer.h"
+#include "inputmgr.h"
 #include <vector>
 
 int width = 640; int height = 400;
@@ -28,6 +29,28 @@ void PushLine(std::queue<RenderCmd>& queue, const Line& line)
 
 void Render()
 {
+	{
+		float x = InputMgr::GetMouseX();
+		float y = InputMgr::GetMouseY();
+
+		cur_line.x2 = x;
+		cur_line.y2 = y;
+
+		if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
+		{
+			std::cout << "Down" << std::endl;
+			is_down = true;
+			cur_line.x1 = x;
+			cur_line.y1 = y;
+		}
+		else if (InputMgr::IsBtnUp(SDL_BUTTON_LEFT))
+		{
+			std::cout << "Up" << std::endl;
+			is_down = false;
+			line_list.push_back(cur_line);
+		}
+	}
+
 	queue.push({ RenderCmd::Color, 0.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
 	queue.push({ RenderCmd::Coord, 1.0f });
@@ -49,30 +72,6 @@ void Render()
 	while (queue.size() > 0)
 	{
 		queue.pop();
-	}
-}
-
-void handle_event(SDL_Event Event)
-{
-	float x = 2.0f * (float)Event.button.x / width - 1.0f;
-	float y = -2.0f * (float)Event.button.y / height + 1.0f;
-
-	cur_line.x2 = x;
-	cur_line.y2 = y;
-
-	if (Event.button.button == SDL_BUTTON_LEFT)
-	{
-		if (Event.type == SDL_MOUSEBUTTONDOWN)
-		{
-			is_down = true;
-			cur_line.x1 = x;
-			cur_line.y1 = y;
-		}
-		else if (Event.type == SDL_MOUSEBUTTONUP)
-		{
-			is_down = false;
-			line_list.push_back(cur_line);
-		}
 	}
 }
 
@@ -100,15 +99,7 @@ int main(int argc, char* argv[])
 	bool running = true;
 	while (running)
 	{
-		SDL_Event Event;
-		while (SDL_PollEvent(&Event))
-		{
-			if (Event.type == SDL_QUIT)
-			{
-				running = false;
-			}
-			handle_event(Event);
-		}
+		InputMgr::Update(window);
 
 		glViewport(0, 0, width, height);
 		glClearColor(0.6f, 0.0f, 0.6f, 1.0f);
