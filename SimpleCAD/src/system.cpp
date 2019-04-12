@@ -1,15 +1,39 @@
 #include "system.h"
 #include "inputmgr.h"
+#include <math.h>
+
+#define PI 3.141593f
+
+struct Point
+{
+	float x, y;
+};
+
+struct Line
+{
+	float x1, y1, x2, y2;
+};
 
 typedef std::vector<Point> Polygon;
 
+struct Circle
+{
+	float x, y;
+	float r;
+};
+
+enum DrawMode
+{
+	DM_Line = 1, DM_Polygon, DM_Circle
+};
+
 std::vector<Line> line_list;
 std::vector<Polygon> polygon_list;
+std::vector<Circle> circle_list;
 
 DrawMode mode = DM_Line;
 bool close_polygon = false;
-std::vector<Point> new_line;
-std::vector<Point> new_polygon;
+std::vector<Point> temp_points; // Used as a placeholder for points while drawing.
 
 void PushLine(std::vector<RenderCmd>& queue, const Line& line)
 {
@@ -20,50 +44,46 @@ void PushLine(std::vector<RenderCmd>& queue, const Line& line)
 	queue.push_back({ RenderCmd::Coord, line.y2 });
 }
 
-void ChangeMode(DrawMode new_mode)
+void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 {
-	if (mode != new_mode)
+	float x = circle.x;
+	float y = circle.y;
+	float r = circle.r;
+
+	for (int i = 1; i <= 360; i++)
 	{
-		switch (mode)
-		{
-		case DM_Line:
-			new_line.clear();
-			break;
+		float theta = PI * i / 180;
+		float theta_pre = PI * (i-1) / 180;
 
-		case DM_Polygon:
-			if (new_polygon.size() > 1)
-			{
-				for (int i = 1; i < new_polygon.size(); i++)
-				{
-					line_list.push_back({ new_polygon[i - 1].x, new_polygon[i - 1].y, new_polygon[i].x, new_polygon[i].y });
-				}
-				line_list.push_back({ new_polygon.back().x, new_polygon.back().y, new_polygon[0].x, new_polygon[0].y });
-			}
-			new_polygon.clear();
-			break;
+		float x1 = x + r * cos(theta_pre);
+		float y1 = y + r * sin(theta_pre);
+		float x2 = x + r * cos(theta);
+		float y2 = y + r * sin(theta);
 
-		default:
-			break;
-		}
+		PushLine(queue, { x1, y1, x2, y2 });
 	}
-
-	mode = new_mode;
 }
 
 void FillQueue(std::vector<RenderCmd>& queue)
 {
-	if (mode == DM_Line && new_line.size() > 0)
+	if (mode == DM_Line && temp_points.size() > 0)
 	{
-		PushLine(queue, { new_line.back().x, new_line.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		PushLine(queue, { temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
 	}
 
-	if (mode == DM_Polygon && new_polygon.size() > 0)
+	if (mode == DM_Polygon && temp_points.size() > 0)
 	{
-		for (int i = 1; i < new_polygon.size(); i++)
+		for (int i = 1; i < temp_points.size(); i++)
 		{
-			PushLine(queue, { new_polygon[i - 1].x, new_polygon[i - 1].y, new_polygon[i].x, new_polygon[i].y });
+			PushLine(queue, { temp_points[i - 1].x, temp_points[i - 1].y, temp_points[i].x, temp_points[i].y });
 		}
-		PushLine(queue, { new_polygon.back().x, new_polygon.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		PushLine(queue, { temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+	}
+
+	if (mode == DM_Circle && temp_points.size() > 0)
+	{
+		float radius = sqrt(pow(InputMgr::GetMouseX() - temp_points[0].x, 2) + pow(InputMgr::GetMouseY() - temp_points[0].y, 2));
+		PushCircle(queue, { temp_points.back().x, temp_points.back().y, radius });
 	}
 
 	for (const Line& line : line_list)
@@ -78,25 +98,30 @@ void FillQueue(std::vector<RenderCmd>& queue)
 			PushLine(queue, { polygon[i - 1].x, polygon[i - 1].y, polygon[i].x, polygon[i].y });
 		}
 	}
+
+	for (const Circle& polygon : circle_list)
+	{
+		PushCircle(queue, polygon);
+	}
 }
 
 void HandleLine()
 {
 	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
 	{
-		if (new_line.size() > 0)
+		if (temp_points.size() > 0)
 		{
-			line_list.push_back({ new_line.back().x, new_line.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
-			new_line.clear();
+			line_list.push_back({ temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+			temp_points.clear();
 		}
 		else
 		{
-			new_line.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+			temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
 		}
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
 	{
-		new_line.clear();
+		temp_points.clear();
 	}
 }
 
@@ -104,24 +129,45 @@ void HandlePolygon()
 {
 	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
 	{
-		new_polygon.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
 	{
-		if (new_polygon.size() > 1)
+		if (temp_points.size() > 1)
 		{
 			polygon_list.push_back(Polygon());
 			Polygon& cur_polygon = polygon_list.back();
-			for (int i = 0; i < new_polygon.size(); i++)
+			for (int i = 0; i < temp_points.size(); i++)
 			{
-				cur_polygon.push_back({ new_polygon[i].x, new_polygon[i].y });
+				cur_polygon.push_back({ temp_points[i].x, temp_points[i].y });
 			}
 			if (close_polygon)
 			{
-				cur_polygon.push_back({ new_polygon[0].x, new_polygon[0].y });
+				cur_polygon.push_back({ temp_points[0].x, temp_points[0].y });
 			}
 		}
-		new_polygon.clear();
+		temp_points.clear();
+	}
+}
+
+void HandleCircle()
+{
+	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
+	{
+		if (temp_points.size() > 0)
+		{
+			float radius = sqrt(pow(InputMgr::GetMouseX() - temp_points[0].x, 2) + pow(InputMgr::GetMouseY() - temp_points[0].y, 2));
+			circle_list.push_back({ temp_points[0].x , temp_points[0].y, radius });
+			temp_points.clear();
+		}
+		else
+		{
+			temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		}
+	}
+	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
+	{
+		temp_points.clear();
 	}
 }
 
@@ -129,11 +175,18 @@ void Update()
 {
 	if (InputMgr::IsKeyDown(SDLK_l))
 	{
-		ChangeMode(DM_Line);
+		temp_points.clear();
+		mode = DM_Line;
 	}
 	else if (InputMgr::IsKeyDown(SDLK_p))
 	{
-		ChangeMode(DM_Polygon);
+		temp_points.clear();
+		mode = DM_Polygon;
+	}
+	else if (InputMgr::IsKeyDown(SDLK_c))
+	{
+		temp_points.clear();
+		mode = DM_Circle;
 	}
 
 	switch (mode)
@@ -143,6 +196,9 @@ void Update()
 		break;
 	case DM_Polygon:
 		HandlePolygon();
+		break;
+	case DM_Circle:
+		HandleCircle();
 		break;
 	default:
 		break;
