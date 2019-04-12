@@ -24,12 +24,18 @@
     <ClCompile Include="src\inputmgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\dragpoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\renderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\inputmgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\dragpoint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

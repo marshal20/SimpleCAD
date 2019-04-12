@@ -4,6 +4,7 @@
 #include <gl/GL.h>
 #include "renderer.h"
 #include "inputmgr.h"
+#include "dragpoint.h"
 #include <vector>
 
 int width = 640; int height = 400;
@@ -14,9 +15,13 @@ struct Line
 	float x1, y1, x2, y2;
 };
 
-bool is_down = false;
-Line cur_line;
+DragPoint left_drag_point;
 std::vector<Line> line_list;
+
+Line DragPointToLine(const DragPoint& point)
+{
+	return { point.x1, point.y1, point.x2, point.y2 };
+}
 
 void PushLine(std::queue<RenderCmd>& queue, const Line& line)
 {
@@ -29,26 +34,15 @@ void PushLine(std::queue<RenderCmd>& queue, const Line& line)
 
 void Render()
 {
+	UpdateDragPoint(&left_drag_point, SDL_BUTTON_LEFT);
+
+	if (left_drag_point.is_active)
 	{
-		float x = InputMgr::GetMouseX();
-		float y = InputMgr::GetMouseY();
-
-		cur_line.x2 = x;
-		cur_line.y2 = y;
-
-		if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
-		{
-			std::cout << "Down" << std::endl;
-			is_down = true;
-			cur_line.x1 = x;
-			cur_line.y1 = y;
-		}
-		else if (InputMgr::IsBtnUp(SDL_BUTTON_LEFT))
-		{
-			std::cout << "Up" << std::endl;
-			is_down = false;
-			line_list.push_back(cur_line);
-		}
+		PushLine(queue, DragPointToLine(left_drag_point));
+	}
+	else if (left_drag_point.is_finished)
+	{
+		line_list.push_back(DragPointToLine(left_drag_point));
 	}
 
 	queue.push({ RenderCmd::Color, 0.0f });
@@ -59,11 +53,6 @@ void Render()
 	for (const Line& line : line_list)
 	{
 		PushLine(queue, line);
-	}
-
-	if (is_down)
-	{
-		PushLine(queue, cur_line);
 	}
 
 	render_queue(queue);
