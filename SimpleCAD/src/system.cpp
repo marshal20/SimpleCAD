@@ -33,6 +33,7 @@ std::vector<Circle> circle_list;
 
 DrawMode mode = DM_Line;
 bool close_polygon = false;
+int circle_segments = 32;
 std::vector<Point> temp_points; // Used as a placeholder for points while drawing.
 
 void PushLine(std::vector<RenderCmd>& queue, const Line& line)
@@ -50,15 +51,16 @@ void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 	float y = circle.y;
 	float r = circle.r;
 
-	for (int i = 1; i <= 360; i++)
+	for (int i = 0; i < circle_segments; i++)
 	{
-		float theta = PI * i / 180;
-		float theta_pre = PI * (i-1) / 180;
-
-		float x1 = x + r * cos(theta_pre);
-		float y1 = y + r * sin(theta_pre);
-		float x2 = x + r * cos(theta);
-		float y2 = y + r * sin(theta);
+		float degree1 = float(i) / circle_segments * 360;
+		float degree2 = float(i+1) / circle_segments * 360;
+		float theta1 = PI * degree1 / 180;
+		float theta2 = PI * degree2 / 180;
+		float x1 = x + r * cos(theta1);
+		float y1 = y + r * sin(theta1);
+		float x2 = x + r * cos(theta2);
+		float y2 = y + r * sin(theta2);
 
 		PushLine(queue, { x1, y1, x2, y2 });
 	}
