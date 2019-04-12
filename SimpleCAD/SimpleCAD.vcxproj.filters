@@ -24,7 +24,7 @@
     <ClCompile Include="src\inputmgr.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\dragpoint.cpp">
+    <ClCompile Include="src\system.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,7 +35,7 @@
     <ClInclude Include="src\inputmgr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\dragpoint.h">
+    <ClInclude Include="src\system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

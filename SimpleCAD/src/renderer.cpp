@@ -2,12 +2,11 @@
 #include <SDL/SDL_opengl.h>
 #include <gl/GL.h>
 
-void render_queue(std::queue<RenderCmd> queue)
+void RenderQueue(std::vector<RenderCmd> queue)
 {
-	while (queue.size() > 0)
+	for(int i = 0; i < queue.size(); i++)
 	{
-		RenderCmd next = queue.front();
-		queue.pop();
+		RenderCmd next = queue[i];
 		if (next.type == RenderCmd::Coord)
 			continue;
 
@@ -15,27 +14,27 @@ void render_queue(std::queue<RenderCmd> queue)
 		{
 		case RenderCmd::Point:
 			glBegin(GL_POINTS);
-			RenderCmd x = queue.front(); queue.pop();
-			RenderCmd y = queue.front(); queue.pop();
+			RenderCmd x = queue[++i];
+			RenderCmd y = queue[++i];
 			glVertex2d(x.val, y.val);
 			glEnd();
 			break;
 
 		case RenderCmd::Line:
 			glBegin(GL_LINES);
-			RenderCmd x1 = queue.front(); queue.pop();
-			RenderCmd y1 = queue.front(); queue.pop();
-			RenderCmd x2 = queue.front(); queue.pop();
-			RenderCmd y2 = queue.front(); queue.pop();
+			RenderCmd x1 = queue[++i];
+			RenderCmd y1 = queue[++i];
+			RenderCmd x2 = queue[++i];
+			RenderCmd y2 = queue[++i];
 			glVertex2d(x1.val, y1.val);
 			glVertex2d(x2.val, y2.val);
 			glEnd();
 			break;
 
 		case RenderCmd::Color:
-			RenderCmd r = queue.front(); queue.pop();
-			RenderCmd g = queue.front(); queue.pop();
-			RenderCmd b = queue.front(); queue.pop();
+			RenderCmd r = queue[++i];
+			RenderCmd g = queue[++i];
+			RenderCmd b = queue[++i];
 			glColor3f(r.val, g.val, b.val);
 			break;
 

@@ -7,4 +7,4 @@ struct RenderCmd
 	float val;
 };
 
-void render_queue(std::queue<RenderCmd> queue);
+void RenderQueue(std::vector<RenderCmd> queue);
