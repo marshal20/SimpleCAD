@@ -1,24 +1,13 @@
 #include "system.h"
 #include "inputmgr.h"
 #include <math.h>
-
-#define PI 3.141593f
-
-struct Point
-{
-	float x, y;
-};
-
-struct Line
-{
-	float x1, y1, x2, y2;
-};
+#include "math.h"
 
 typedef std::vector<Point> Polygon;
 
 struct Circle
 {
-	float x, y;
+	Point center;
 	float r;
 };
 
@@ -39,16 +28,16 @@ std::vector<Point> temp_points; // Used as a placeholder for points while drawin
 void PushLine(std::vector<RenderCmd>& queue, const Line& line)
 {
 	queue.push_back({ RenderCmd::Line, 0.0f });
-	queue.push_back({ RenderCmd::Coord, line.x1 });
-	queue.push_back({ RenderCmd::Coord, line.y1 });
-	queue.push_back({ RenderCmd::Coord, line.x2 });
-	queue.push_back({ RenderCmd::Coord, line.y2 });
+	queue.push_back({ RenderCmd::Coord, line.p1.x });
+	queue.push_back({ RenderCmd::Coord, line.p1.y });
+	queue.push_back({ RenderCmd::Coord, line.p2.x });
+	queue.push_back({ RenderCmd::Coord, line.p2.y });
 }
 
 void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 {
-	float x = circle.x;
-	float y = circle.y;
+	float x = circle.center.x;
+	float y = circle.center.y;
 	float r = circle.r;
 
 	for (int i = 0; i < circle_segments; i++)
@@ -70,22 +59,22 @@ void FillQueue(std::vector<RenderCmd>& queue)
 {
 	if (mode == DM_Line && temp_points.size() > 0)
 	{
-		PushLine(queue, { temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		PushLine(queue, { temp_points.back(), InputMgr::GetMouse() });
 	}
 
 	if (mode == DM_Polygon && temp_points.size() > 0)
 	{
 		for (int i = 1; i < temp_points.size(); i++)
 		{
-			PushLine(queue, { temp_points[i - 1].x, temp_points[i - 1].y, temp_points[i].x, temp_points[i].y });
+			PushLine(queue, { temp_points[i - 1], temp_points[i] });
 		}
-		PushLine(queue, { temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		PushLine(queue, { temp_points.back(), InputMgr::GetMouse() });
 	}
 
 	if (mode == DM_Circle && temp_points.size() > 0)
 	{
-		float radius = sqrt(pow(InputMgr::GetMouseX() - temp_points[0].x, 2) + pow(InputMgr::GetMouseY() - temp_points[0].y, 2));
-		PushCircle(queue, { temp_points.back().x, temp_points.back().y, radius });
+		float radius = distance(InputMgr::GetMouse(), temp_points[0]);
+		PushCircle(queue, { temp_points.back(), radius });
 	}
 
 	for (const Line& line : line_list)
@@ -97,7 +86,7 @@ void FillQueue(std::vector<RenderCmd>& queue)
 	{
 		for (int i = 1; i < polygon.size(); i++)
 		{
-			PushLine(queue, { polygon[i - 1].x, polygon[i - 1].y, polygon[i].x, polygon[i].y });
+			PushLine(queue, { polygon[i - 1], polygon[i] });
 		}
 	}
 
@@ -113,12 +102,12 @@ void HandleLine()
 	{
 		if (temp_points.size() > 0)
 		{
-			line_list.push_back({ temp_points.back().x, temp_points.back().y, InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+			line_list.push_back({ temp_points.back(), InputMgr::GetMouse() });
 			temp_points.clear();
 		}
 		else
 		{
-			temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+			temp_points.push_back(InputMgr::GetMouse());
 		}
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
@@ -131,7 +120,7 @@ void HandlePolygon()
 {
 	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
 	{
-		temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+		temp_points.push_back(InputMgr::GetMouse());
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
 	{
@@ -141,11 +130,11 @@ void HandlePolygon()
 			Polygon& cur_polygon = polygon_list.back();
 			for (int i = 0; i < temp_points.size(); i++)
 			{
-				cur_polygon.push_back({ temp_points[i].x, temp_points[i].y });
+				cur_polygon.push_back(temp_points[i]);
 			}
 			if (close_polygon)
 			{
-				cur_polygon.push_back({ temp_points[0].x, temp_points[0].y });
+				cur_polygon.push_back(temp_points[0]);
 			}
 		}
 		temp_points.clear();
@@ -158,13 +147,13 @@ void HandleCircle()
 	{
 		if (temp_points.size() > 0)
 		{
-			float radius = sqrt(pow(InputMgr::GetMouseX() - temp_points[0].x, 2) + pow(InputMgr::GetMouseY() - temp_points[0].y, 2));
-			circle_list.push_back({ temp_points[0].x , temp_points[0].y, radius });
+			float radius = distance(InputMgr::GetMouse(), temp_points[0]);
+			circle_list.push_back({ {temp_points[0].x , temp_points[0].y }, radius });
 			temp_points.clear();
 		}
 		else
 		{
-			temp_points.push_back({ InputMgr::GetMouseX(), InputMgr::GetMouseY() });
+			temp_points.push_back(InputMgr::GetMouse());
 		}
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))

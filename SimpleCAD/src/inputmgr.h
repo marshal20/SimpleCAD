@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <SDL/SDL.h>
+#include "math.h"
 
 // A key/button can have 4 states (2 main, 2 transition):
 // - Pressed: the key is held.
@@ -27,6 +28,7 @@ public:
 	static bool IsBtnReleased(Uint8 btn);
 	static bool IsBtnPressed(Uint8 btn);
 
+	static Point GetMouse();
 	static float GetMouseX();
 	static float GetMouseY();
 	static int GetSizeX();
