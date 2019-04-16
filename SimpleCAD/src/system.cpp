@@ -17,6 +17,11 @@ struct Circle
 	float r;
 };
 
+enum MouseMode
+{
+	MM_Draw, MM_Move
+};
+
 enum DrawMode
 {
 	DM_Line = 1, DM_Polygon, DM_Circle
@@ -26,7 +31,8 @@ std::vector<Line> line_list;
 std::vector<Polygon> polygon_list;
 std::vector<Circle> circle_list;
 
-DrawMode mode = DM_Line;
+MouseMode mouse_mode = MM_Draw;
+DrawMode draw_mode = DM_Line;
 bool close_polygon = false;
 int circle_segments = 32;
 std::vector<vec2f> temp_points; // Used as a placeholder for points while drawing.
@@ -62,10 +68,10 @@ void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 		float degree2 = float(i+1) / circle_segments * 360;
 		float theta1 = PI * degree1 / 180;
 		float theta2 = PI * degree2 / 180;
-		float x1 = x + r * cos(theta1);
-		float y1 = y + r * sin(theta1);
-		float x2 = x + r * cos(theta2);
-		float y2 = y + r * sin(theta2);
+		float x1 = x + r * (float)cos(theta1);
+		float y1 = y + r * (float)sin(theta1);
+		float x2 = x + r * (float)cos(theta2);
+		float y2 = y + r * (float)sin(theta2);
 
 		PushLine(queue, { {x1, y1}, {x2, y2} });
 	}
@@ -73,24 +79,27 @@ void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 
 void FillQueue(std::vector<RenderCmd>& queue)
 {
-	if (mode == DM_Line && temp_points.size() > 0)
+	if (mouse_mode == MM_Draw)
 	{
-		PushLine(queue, { temp_points.back(), GetGridCursor() });
-	}
-
-	if (mode == DM_Polygon && temp_points.size() > 0)
-	{
-		for (int i = 1; i < temp_points.size(); i++)
+		if (draw_mode == DM_Line && temp_points.size() > 0)
 		{
-			PushLine(queue, { temp_points[i - 1], temp_points[i] });
+			PushLine(queue, { temp_points.back(), GetGridCursor() });
 		}
-		PushLine(queue, { temp_points.back(), GetGridCursor() });
-	}
 
-	if (mode == DM_Circle && temp_points.size() > 0)
-	{
-		float radius = distance(GetGridCursor(), temp_points[0]);
-		PushCircle(queue, { temp_points.back(), radius });
+		if (draw_mode == DM_Polygon && temp_points.size() > 0)
+		{
+			for (unsigned int i = 1; i < temp_points.size(); i++)
+			{
+				PushLine(queue, { temp_points[i - 1], temp_points[i] });
+			}
+			PushLine(queue, { temp_points.back(), GetGridCursor() });
+		}
+
+		if (draw_mode == DM_Circle && temp_points.size() > 0)
+		{
+			float radius = distance<float>(GetGridCursor(), temp_points[0]);
+			PushCircle(queue, { temp_points.back(), radius });
+		}
 	}
 
 	for (const Line& line : line_list)
@@ -100,7 +109,7 @@ void FillQueue(std::vector<RenderCmd>& queue)
 
 	for (const Polygon& polygon : polygon_list)
 	{
-		for (int i = 1; i < polygon.size(); i++)
+		for (unsigned int i = 1; i < polygon.size(); i++)
 		{
 			PushLine(queue, { polygon[i - 1], polygon[i] });
 		}
@@ -144,7 +153,7 @@ void HandlePolygon()
 		{
 			polygon_list.push_back(Polygon());
 			Polygon& cur_polygon = polygon_list.back();
-			for (int i = 0; i < temp_points.size(); i++)
+			for (unsigned int i = 0; i < temp_points.size(); i++)
 			{
 				cur_polygon.push_back(temp_points[i]);
 			}
@@ -178,28 +187,25 @@ void HandleCircle()
 	}
 }
 
-void Update()
+void UpdateDraw()
 {
-	float aspect = float(InputMgr::GetSizeX()) / float(InputMgr::GetSizeY());
-	grid_to_normalised.scale.x = 1.0f / aspect;
-
-	if (InputMgr::IsKeyDown(SDLK_l))
+	if (InputMgr::IsKeyDown(SDLK_0))
 	{
 		temp_points.clear();
-		mode = DM_Line;
+		draw_mode = DM_Line;
 	}
-	else if (InputMgr::IsKeyDown(SDLK_p))
+	else if (InputMgr::IsKeyDown(SDLK_1))
 	{
 		temp_points.clear();
-		mode = DM_Polygon;
+		draw_mode = DM_Polygon;
 	}
-	else if (InputMgr::IsKeyDown(SDLK_c))
+	else if (InputMgr::IsKeyDown(SDLK_2))
 	{
 		temp_points.clear();
-		mode = DM_Circle;
+		draw_mode = DM_Circle;
 	}
 
-	switch (mode)
+	switch (draw_mode)
 	{
 	case DM_Line:
 		HandleLine();
@@ -209,6 +215,64 @@ void Update()
 		break;
 	case DM_Circle:
 		HandleCircle();
+		break;
+	default:
+		break;
+	}
+}
+
+void UpdateMove()
+{
+	static vec2f translate_initial;
+	static vec2f mouse_initial;
+	static bool is_moving = false;
+
+	vec2f delta_mouse = InputMgr::GetMouse() / grid_to_normalised.scale - mouse_initial;
+
+	if (is_moving)
+	{
+		grid_to_normalised.translation = translate_initial + delta_mouse;
+	}
+
+	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
+	{
+		mouse_initial = InputMgr::GetMouse() / grid_to_normalised.scale;
+		translate_initial = grid_to_normalised.translation;
+		is_moving = true;
+	}
+	if (InputMgr::IsBtnUp(SDL_BUTTON_LEFT) && is_moving)
+	{
+		grid_to_normalised.translation = translate_initial + delta_mouse;
+		is_moving = false;
+	}
+	if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
+	{
+		grid_to_normalised.translation = translate_initial;
+		is_moving = false;
+	}
+}
+
+void Update()
+{
+	float aspect = float(InputMgr::GetSizeX()) / float(InputMgr::GetSizeY());
+	grid_to_normalised.scale.x = 1.0f / aspect;
+
+	if (InputMgr::IsKeyDown(SDLK_d))
+	{
+		mouse_mode = MM_Draw;
+	}
+	else if (InputMgr::IsKeyDown(SDLK_m))
+	{
+		mouse_mode = MM_Move;
+	}
+
+	switch (mouse_mode)
+	{
+	case MM_Draw:
+		UpdateDraw();
+		break;
+	case MM_Move:
+		UpdateMove();
 		break;
 	default:
 		break;

@@ -96,7 +96,7 @@ T cross(const vec2<T>& v1, const vec2<T>& v2)
 template <typename T>
 T distance(const vec2<T>& v1, const vec2<T>& v2)
 {
-	return sqrt(pow(v2.x - v1.x, 2) + pow(v2.y - v1.y, 2));
+	return (float)sqrt((float)pow((v2.x - v1.x), 2) + (float)pow((v2.y - v1.y), 2));
 }
 
 typedef vec2<float> vec2f;
