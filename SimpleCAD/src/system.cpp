@@ -2,6 +2,7 @@
 #include "inputmgr.h"
 #include <math.h>
 #include "math.h"
+#include "transform.h"
 
 typedef std::vector<Point> Polygon;
 
@@ -25,13 +26,23 @@ bool close_polygon = false;
 int circle_segments = 32;
 std::vector<Point> temp_points; // Used as a placeholder for points while drawing.
 
+Transform grid_to_normalised = { {0.0f, 0.0f}, 0.0f, {1.0f, 1.0f} };
+
+Point GetGridCursor()
+{
+	Point mouse = InputMgr::GetMouse();
+	return TransformInverse(grid_to_normalised, mouse);
+}
+
 void PushLine(std::vector<RenderCmd>& queue, const Line& line)
 {
+	Point p1 = TransformForward(grid_to_normalised, line.p1);
+	Point p2 = TransformForward(grid_to_normalised, line.p2);
 	queue.push_back({ RenderCmd::Line, 0.0f });
-	queue.push_back({ RenderCmd::Coord, line.p1.x });
-	queue.push_back({ RenderCmd::Coord, line.p1.y });
-	queue.push_back({ RenderCmd::Coord, line.p2.x });
-	queue.push_back({ RenderCmd::Coord, line.p2.y });
+	queue.push_back({ RenderCmd::Coord, p1.x });
+	queue.push_back({ RenderCmd::Coord, p1.y });
+	queue.push_back({ RenderCmd::Coord, p2.x });
+	queue.push_back({ RenderCmd::Coord, p2.y });
 }
 
 void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
@@ -59,7 +70,7 @@ void FillQueue(std::vector<RenderCmd>& queue)
 {
 	if (mode == DM_Line && temp_points.size() > 0)
 	{
-		PushLine(queue, { temp_points.back(), InputMgr::GetMouse() });
+		PushLine(queue, { temp_points.back(), GetGridCursor() });
 	}
 
 	if (mode == DM_Polygon && temp_points.size() > 0)
@@ -68,12 +79,12 @@ void FillQueue(std::vector<RenderCmd>& queue)
 		{
 			PushLine(queue, { temp_points[i - 1], temp_points[i] });
 		}
-		PushLine(queue, { temp_points.back(), InputMgr::GetMouse() });
+		PushLine(queue, { temp_points.back(), GetGridCursor() });
 	}
 
 	if (mode == DM_Circle && temp_points.size() > 0)
 	{
-		float radius = distance(InputMgr::GetMouse(), temp_points[0]);
+		float radius = distance(GetGridCursor(), temp_points[0]);
 		PushCircle(queue, { temp_points.back(), radius });
 	}
 
@@ -102,12 +113,12 @@ void HandleLine()
 	{
 		if (temp_points.size() > 0)
 		{
-			line_list.push_back({ temp_points.back(), InputMgr::GetMouse() });
+			line_list.push_back({ temp_points.back(), GetGridCursor() });
 			temp_points.clear();
 		}
 		else
 		{
-			temp_points.push_back(InputMgr::GetMouse());
+			temp_points.push_back(GetGridCursor());
 		}
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
@@ -120,7 +131,7 @@ void HandlePolygon()
 {
 	if (InputMgr::IsBtnDown(SDL_BUTTON_LEFT))
 	{
-		temp_points.push_back(InputMgr::GetMouse());
+		temp_points.push_back(GetGridCursor());
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
 	{
@@ -147,13 +158,13 @@ void HandleCircle()
 	{
 		if (temp_points.size() > 0)
 		{
-			float radius = distance(InputMgr::GetMouse(), temp_points[0]);
+			float radius = distance(GetGridCursor(), temp_points[0]);
 			circle_list.push_back({ {temp_points[0].x , temp_points[0].y }, radius });
 			temp_points.clear();
 		}
 		else
 		{
-			temp_points.push_back(InputMgr::GetMouse());
+			temp_points.push_back(GetGridCursor());
 		}
 	}
 	else if (InputMgr::IsBtnDown(SDL_BUTTON_RIGHT))
@@ -164,6 +175,9 @@ void HandleCircle()
 
 void Update()
 {
+	float aspect = float(InputMgr::GetSizeX()) / float(InputMgr::GetSizeY());
+	grid_to_normalised.scale.x = 1.0f / aspect;
+
 	if (InputMgr::IsKeyDown(SDLK_l))
 	{
 		temp_points.clear();
