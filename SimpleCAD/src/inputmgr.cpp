@@ -126,7 +126,7 @@ bool InputMgr::IsBtnPressed(Uint8 btn)
 	return state == kDown || state == kPressed;
 }
 
-Point InputMgr::GetMouse()
+vec2f InputMgr::GetMouse()
 {
 	return { m_mouse_x, m_mouse_y };
 }

@@ -2,13 +2,18 @@
 #include "inputmgr.h"
 #include <math.h>
 #include "math.h"
-#include "transform.h"
+#include "math/math.h"
 
-typedef std::vector<Point> Polygon;
+typedef std::vector<vec2f> Polygon;
+
+struct Line
+{
+	vec2f p1, p2;
+};
 
 struct Circle
 {
-	Point center;
+	vec2f center;
 	float r;
 };
 
@@ -24,20 +29,20 @@ std::vector<Circle> circle_list;
 DrawMode mode = DM_Line;
 bool close_polygon = false;
 int circle_segments = 32;
-std::vector<Point> temp_points; // Used as a placeholder for points while drawing.
+std::vector<vec2f> temp_points; // Used as a placeholder for points while drawing.
 
 Transform grid_to_normalised = { {0.0f, 0.0f}, 0.0f, {1.0f, 1.0f} };
 
-Point GetGridCursor()
+vec2f GetGridCursor()
 {
-	Point mouse = InputMgr::GetMouse();
+	vec2f mouse = InputMgr::GetMouse();
 	return TransformInverse(grid_to_normalised, mouse);
 }
 
 void PushLine(std::vector<RenderCmd>& queue, const Line& line)
 {
-	Point p1 = TransformForward(grid_to_normalised, line.p1);
-	Point p2 = TransformForward(grid_to_normalised, line.p2);
+	vec2f p1 = TransformForward(grid_to_normalised, line.p1);
+	vec2f p2 = TransformForward(grid_to_normalised, line.p2);
 	queue.push_back({ RenderCmd::Line, 0.0f });
 	queue.push_back({ RenderCmd::Coord, p1.x });
 	queue.push_back({ RenderCmd::Coord, p1.y });
@@ -62,7 +67,7 @@ void PushCircle(std::vector<RenderCmd>& queue, const Circle& circle)
 		float x2 = x + r * cos(theta2);
 		float y2 = y + r * sin(theta2);
 
-		PushLine(queue, { x1, y1, x2, y2 });
+		PushLine(queue, { {x1, y1}, {x2, y2} });
 	}
 }
 

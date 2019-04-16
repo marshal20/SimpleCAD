@@ -172,18 +172,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\inputmgr.cpp" />
-    <ClCompile Include="src\math.cpp" />
+    <ClCompile Include="src\math\math.cpp" />
     <ClCompile Include="src\renderer.cpp" />
     <ClCompile Include="src\SimpleCAD.cpp" />
     <ClCompile Include="src\system.cpp" />
-    <ClCompile Include="src\transform.cpp" />
+    <ClCompile Include="src\math\transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\inputmgr.h" />
-    <ClInclude Include="src\math.h" />
+    <ClInclude Include="src\math\math.h" />
+    <ClInclude Include="src\math\vector.h" />
     <ClInclude Include="src\renderer.h" />
     <ClInclude Include="src\system.h" />
-    <ClInclude Include="src\transform.h" />
+    <ClInclude Include="src\math\transform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

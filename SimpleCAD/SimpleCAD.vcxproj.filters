@@ -27,10 +27,10 @@
     <ClCompile Include="src\system.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math.cpp">
+    <ClCompile Include="src\math\transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\transform.cpp">
+    <ClCompile Include="src\math\math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,10 +44,13 @@
     <ClInclude Include="src\system.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math.h">
+    <ClInclude Include="src\math\vector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\transform.h">
+    <ClInclude Include="src\math\transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

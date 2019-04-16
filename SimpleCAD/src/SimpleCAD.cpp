@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 	}
 
 	window = SDL_CreateWindow( "My SDL Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+		width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 	SDL_GLContext Context = SDL_GL_CreateContext(window);
 
 
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 	{
 		InputMgr::Update(window);
 
-		glViewport(0, 0, width, height);
+		glViewport(0, 0, InputMgr::GetSizeX(), InputMgr::GetSizeY());
 		glClearColor(0.6f, 0.0f, 0.6f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
